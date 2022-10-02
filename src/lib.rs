@@ -169,8 +169,8 @@ impl AsyncMethod<AsyncMethods> for TunnelFn {
 
                 // Pass url to godot
                 let c = unsafe { obj.assume_safe().call("tunnel_callback", &[pr]) };
-                let c:Ref<Reference> = Ref::<Reference>::from_variant(&c).unwrap();
-                let c:TRef<Reference> = unsafe { c.assume_safe() };
+                // let c:Ref<Reference> = Ref::<Reference>::from_variant(&c).unwrap();
+                // let c:TRef<Reference> = unsafe { c.assume_safe() };
 
                 // Yield until resumed (to close the tunnel)
                 ctx.until_resume().await;

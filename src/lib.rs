@@ -160,27 +160,37 @@ impl AsyncMethod<AsyncMethods> for TunnelFn {
                     notify_shutdown.clone(),
                     10,
                 )
-                .await
-                .unwrap();
+                .await;
 
-                println!("Tunneled to: {}", result);
+                match result {
+                    Err(e) => {
+                        let error_str = format!("Tunnel Error! \"{}\"", e);
+                        godot_print!("{}", error_str);
+                        let c = unsafe { obj.assume_safe().call("tunnel_error", &[error_str.to_variant()]) };
+                    },
+                    Ok(url) => {
+                        godot_print!("Tunneled to: {}", url);
 
-                let pr = result.to_variant();
+                        let pr = url.to_variant();
+        
+                        // Pass url to godot
+                        let c = unsafe { obj.assume_safe().call("tunnel_callback", &[pr]) };
+                        // let c:Ref<Reference> = Ref::<Reference>::from_variant(&c).unwrap();
+                        // let c:TRef<Reference> = unsafe { c.assume_safe() };
+        
+                        // Yield until resumed (to close the tunnel)
+                        ctx.until_resume().await;
+        
+                        godot_print!("Tunnel death triggered from GDScript");
+        
+                        // Shutdown the background tasks by sending a signal.
+                        let _ = notify_shutdown.send(());
+        
+                        godot_print!("Tunnel killed");
+                    }
+                }
 
-                // Pass url to godot
-                let c = unsafe { obj.assume_safe().call("tunnel_callback", &[pr]) };
-                // let c:Ref<Reference> = Ref::<Reference>::from_variant(&c).unwrap();
-                // let c:TRef<Reference> = unsafe { c.assume_safe() };
-
-                // Yield until resumed (to close the tunnel)
-                ctx.until_resume().await;
-
-                println!("About to kill");
-
-                // Shutdown the background tasks by sending a signal.
-                let _ = notify_shutdown.send(());
-
-                println!("Tunnel killed");
+                
 
                 ().to_variant()
             }
